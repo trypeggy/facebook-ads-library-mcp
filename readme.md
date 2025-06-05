@@ -6,7 +6,7 @@ With this you can search Facebook's public ads library for any company or brand,
 
 Here's an example of what you can do when it's connected to Claude.
 
-![WhatsApp MCP](./example-use.png)
+Placeholder image
 
 > To get updates on this and other projects we work on [enter your email here](https://tally.so/r/np6rYy)
 
@@ -33,11 +33,11 @@ Here's an example of what you can do when it's connected to Claude.
   ```
 2. **Obtain an API token from Scrape Creators**
 
-Sign up [here](https://scrapecreators.com/) 
+  Sign up [here](https://scrapecreators.com/) 
 
 3. **Connect to the MCP server**
 
-Copy the below json with the appropriate {{PATH}} values and {{API KEY}}:
+  Copy the below json with the appropriate {{PATH}} values and {{API KEY}}:
 
    ```json
 {
