@@ -8,7 +8,7 @@ Here's an example of what you can do when it's connected to Claude.
 
 Placeholder image
 
-> To get updates on this or other projects we work on [enter your email here](https://tally.so/r/np6rYy)
+> To get updates on this and other projects we work on [enter your email here](https://tally.so/r/np6rYy)
 
 
 ### Example Prompts
@@ -27,37 +27,34 @@ Placeholder image
 ### Steps
 1. **Clone this repository**
 
-    ```bash
-    git clone https://github.com/trypeggy/facebook-ads-library-mcp.git
-    cd facebook-ads-library-mcp
-    ```
-
+  ```bash
+  git clone https://github.com/trypeggy/facebook-ads-library-mcp.git
+  cd facebook-ads-library-mcp
+  ```
 2. **Obtain an API token from Scrape Creators**
 
-    Sign up [here](https://scrapecreators.com/) 
+  Sign up [here](https://scrapecreators.com/) 
 
 3. **Connect to the MCP server**
 
   Copy the below json with the appropriate {{PATH}} values and {{API KEY}}:
 
-     ```json
-  {
-   "mcpServers": {
-     "fb_ad_library": {
-       "command": "python",
-       "args": ["{{PATH_TO_SRC}}/fb_ad_library_mcp/src/mcp_server.py", "--scrapecreators-api-key", "{{YOUR_SCRAPECREATORS_API_KEY}}"]
-     }
+   ```json
+{
+ "mcpServers": {
+   "fb_ad_library": {
+     "command": "python",
+     "args": ["{{PATH_TO_SRC}}/fb_ad_library_mcp/src/mcp_server.py", "--scrapecreators-api-key", "{{YOUR_SCRAPECREATORS_API_KEY}}"]
    }
-  }
-  ```
-
+ }
+}
+```
 
   For **Claude**, save this as `claude_desktop_config.json` in your Claude Desktop configuration directory at:
 
    ```
    ~/Library/Application Support/Claude/claude_desktop_config.json
    ```
-
 
    For **Cursor**, save this as `mcp.json` in your Cursor configuration directory at:
 
@@ -67,7 +64,7 @@ Placeholder image
 
 4. **Restart Claude Desktop / Cursor**
    
-   Open Claude Desktop and you should now see facebook-ad-library as an available integration.
+   Open Claude Desktop and you should now see WhatsApp as an available integration.
 
    Or restart Cursor.
 
