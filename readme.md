@@ -14,7 +14,17 @@ Placeholder image
 
 ## Example Prompts
 
-*Coming soon - example prompts will be added here*
+```plaintext
+How many ads is 'AnthropicAI' running? What’s their split across video and image?
+```
+
+```plaintext
+What messaging is 'AnthropicAI' running right now in their ads?
+```
+
+```plaintext
+Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and 'OpenAI'. Give it a nice forwardable summary.
+```
 
 > Don't want to deal with code? [Try our no-code version](https://tally.so/r/np6dzB)
 
