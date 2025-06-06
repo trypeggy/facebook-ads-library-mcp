@@ -6,7 +6,9 @@ With this you can search Facebook's public ads library for any company or brand,
 
 Here's an example of what you can do when it's connected to Claude.
 
-Placeholder image
+
+https://github.com/user-attachments/assets/a47aa689-e89d-4d4b-9df7-6eb3a81937ee
+
 
 > To get updates on this and other projects we work on [enter your email here](https://tally.so/r/np6rYy)
 
