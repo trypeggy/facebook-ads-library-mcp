@@ -132,3 +132,4 @@ This project is licensed under the MIT License.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.12+-green.svg)
+[![smithery badge](https://smithery.ai/badge/@trypeggy/facebook-ads-library-mcp)](https://smithery.ai/server/@trypeggy/facebook-ads-library-mcp)
