@@ -34,6 +34,14 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
 
 ## Installation
 
+### Installing via Smithery
+
+To install Facebook Ads Library for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@trypeggy/facebook-ads-library-mcp):
+
+```bash
+npx -y @smithery/cli install @trypeggy/facebook-ads-library-mcp --client claude
+```
+
 ### Prerequisites
 
 - Python 3.12+
