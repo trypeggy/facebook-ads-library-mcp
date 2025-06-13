@@ -1,0 +1,19 @@
+# Smithery configuration file: https://smithery.ai/docs/build/project-config
+
+startCommand:
+  type: stdio
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({ command: 'python', args: ['src/mcp_server.py', '--scrapecreators-api-key', config.scrapecreatorsApiKey], env: { } })
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - scrapecreatorsApiKey
+    properties:
+      scrapecreatorsApiKey:
+        type: string
+        description: API key for Scrape Creators API
+  exampleConfig:
+    scrapecreatorsApiKey: YOUR_SCRAPECREATORS_API_KEY
