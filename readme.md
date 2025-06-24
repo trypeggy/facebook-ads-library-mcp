@@ -12,6 +12,8 @@ https://github.com/user-attachments/assets/a47aa689-e89d-4d4b-9df7-6eb3a81937ee
 
 > To get updates on this and other projects we work on [enter your email here](https://tally.so/r/np6rYy)
 
+PS: Join our [Twitter community](https://twitter.com/i/communities/1937504082635170114) for all things MCP 
+
 ---
 
 ## Example Prompts
