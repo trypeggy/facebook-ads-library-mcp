@@ -5,3 +5,4 @@ pyvenv.cfg
 *__pycache__*
 *.db
 .env
+mcp-inspector-config.json
