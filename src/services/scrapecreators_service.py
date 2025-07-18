@@ -1,5 +1,6 @@
 import requests
 import sys
+import os
 import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional
@@ -18,17 +19,19 @@ SCRAPECREATORS_API_KEY = None
 
 def get_scrapecreators_api_key() -> str:
     """
-    Get ScrapeCreators API key from command line arguments.
+    Get ScrapeCreators API key from command line arguments or environment variable.
     Caches the key in memory after first read.
+    Priority: command line argument > environment variable
 
     Returns:
         str: The ScrapeCreators API key.
 
     Raises:
-        Exception: If no key is provided in command line arguments.
+        Exception: If no key is provided in command line arguments or environment.
     """
     global SCRAPECREATORS_API_KEY
     if SCRAPECREATORS_API_KEY is None:
+        # Try command line argument first
         if "--scrapecreators-api-key" in sys.argv:
             token_index = sys.argv.index("--scrapecreators-api-key") + 1
             if token_index < len(sys.argv):
@@ -36,8 +39,12 @@ def get_scrapecreators_api_key() -> str:
                 print(f"Using ScrapeCreators API key from command line arguments")
             else:
                 raise Exception("--scrapecreators-api-key argument provided but no key value followed it")
+        # Try environment variable
+        elif os.getenv("SCRAPECREATORS_API_KEY"):
+            SCRAPECREATORS_API_KEY = os.getenv("SCRAPECREATORS_API_KEY")
+            print(f"Using ScrapeCreators API key from environment variable")
         else:
-            raise Exception("ScrapeCreators API key must be provided via '--scrapecreators-api-key' command line argument")
+            raise Exception("ScrapeCreators API key must be provided via '--scrapecreators-api-key' command line argument or 'SCRAPECREATORS_API_KEY' environment variable")
 
     return SCRAPECREATORS_API_KEY
 

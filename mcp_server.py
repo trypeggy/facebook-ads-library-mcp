@@ -1,5 +1,5 @@
-from fastmcp import FastMCP
-from services.scrapecreators_service import get_platform_id, get_ads, get_scrapecreators_api_key
+from mcp.server.fastmcp import FastMCP
+from src.services.scrapecreators_service import get_platform_id, get_ads, get_scrapecreators_api_key
 from typing import Dict, Any, List, Optional
 import requests
 
@@ -16,13 +16,13 @@ The API provides real-time access to Facebook Ad Library data including ad conte
 """
 
 
-mcp_server = FastMCP(
+mcp = FastMCP(
    name="Meta Ads Library",
    instructions=INSTRUCTIONS
 )
 
 
-@mcp_server.tool(
+@mcp.tool(
   description="Search for companies or brands in the Meta Ad Library and return their platform IDs. Use this tool when you need to find a brand's Meta Platform ID before retrieving their ads. This tool searches the Facebook Ad Library to find matching brands and their associated Meta Platform IDs for ad retrieval.",
   annotations={
     "title": "Search Meta Ad Library Brands",
@@ -101,7 +101,7 @@ def get_meta_platform_id(brand_name: str) -> Dict[str, Any]:
         }
 
 
-@mcp_server.tool(
+@mcp.tool(
   description="Retrieve currently running ads for a brand using their Meta Platform ID. Use this tool after getting a platform ID from get_meta_platform_id. This tool fetches active advertisements from the Meta Ad Library, including ad content, media, dates, and targeting information.",
   annotations={
     "title": "Get Meta Ad Library Ads",
@@ -240,4 +240,4 @@ def get_meta_ads(
 
 
 if __name__ == "__main__":
-   mcp_server.run(transport="stdio")
+   mcp.run()
