@@ -89,7 +89,7 @@ def get_platform_id(brand_name: str) -> Dict[str, str]:
 
 def get_ads(
     page_id: str, 
-    limit: int = 20,
+    limit: int = 50,
     country: Optional[str] = None,
     trim: bool = True
 ) -> List[Dict[str, Any]]:
@@ -127,7 +127,7 @@ def get_ads(
 
     ads = []
     total_requests = 0
-    max_requests = 5  # Prevent infinite loops
+    max_requests = 10  # Allow more requests for comprehensive data
     
     while len(ads) < limit and total_requests < max_requests:
         if cursor:

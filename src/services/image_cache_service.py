@@ -284,6 +284,7 @@ class ImageCacheService:
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
         with sqlite3.connect(CACHE_DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
             cursor = conn.execute("""
                 SELECT 
                     COUNT(*) as total_images,
@@ -293,10 +294,11 @@ class ImageCacheService:
                 FROM image_cache
             """)
             
-            stats = dict(cursor.fetchone())
+            row = cursor.fetchone()
+            stats = dict(row) if row else {}
             
             # Convert to more readable format
-            stats['total_size_mb'] = round(stats['total_size_bytes'] / (1024 * 1024), 2) if stats['total_size_bytes'] else 0
+            stats['total_size_mb'] = round(stats['total_size_bytes'] / (1024 * 1024), 2) if stats.get('total_size_bytes') else 0
             stats['total_size_gb'] = round(stats['total_size_mb'] / 1024, 2)
             
             return stats

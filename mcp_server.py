@@ -82,6 +82,7 @@ def get_meta_platform_id(brand_name: str) -> Dict[str, Any]:
             "message": f"Found {len(platform_ids)} matching brand(s) for '{brand_name}' in the Meta Ad Library.",
             "platform_ids": platform_ids,
             "total_results": len(platform_ids),
+            "source_citation": f"[Facebook Ad Library Search](https://www.facebook.com/ads/library/)",
             "error": None
         }
         
@@ -104,7 +105,7 @@ def get_meta_platform_id(brand_name: str) -> Dict[str, Any]:
 
 
 @mcp.tool(
-  description="Retrieve currently running ads for a brand using their Meta Platform ID. Use this tool after getting a platform ID from get_meta_platform_id. This tool fetches active advertisements from the Meta Ad Library, including ad content, media, dates, and targeting information.",
+  description="Retrieve currently running ads for a brand using their Meta Platform ID. Use this tool after getting a platform ID from get_meta_platform_id. This tool fetches active advertisements from the Meta Ad Library, including ad content, media URLs, dates, and targeting information. For complete analysis of visual elements, colors, design, or image content, you MUST also use analyze_ad_image on the media_url from each ad.",
   annotations={
     "title": "Get Meta Ad Library Ads",
     "readOnlyHint": True,
@@ -113,7 +114,7 @@ def get_meta_platform_id(brand_name: str) -> Dict[str, Any]:
 )
 def get_meta_ads(
     platform_id: str, 
-    limit: Optional[int] = 20,
+    limit: Optional[int] = 50,
     country: Optional[str] = None,
     trim: Optional[bool] = True
 ) -> Dict[str, Any]:
@@ -126,8 +127,8 @@ def get_meta_ads(
     Args:
         platform_id: The Meta Platform ID for the brand (obtained from get_meta_platform_id).
                     This should be a valid platform ID string.
-        limit: Maximum number of ads to retrieve (default: 20, max: 100).
-               This helps control the amount of data returned and API usage.
+        limit: Maximum number of ads to retrieve (default: 50, max: 500).
+               Higher limits allow comprehensive brand analysis but may take longer to process.
         country: Optional country code to filter ads by geographic targeting.
                  Examples: "US", "CA", "GB", "AU". If not provided, returns ads from all countries.
         trim: Whether to trim the response to essential fields only (default: True).
@@ -169,8 +170,8 @@ def get_meta_ads(
                 "cursor": None,
                 "error": "Invalid limit parameter"
             }
-        if limit > 100:
-            limit = 100  # Cap at 100 for performance and API limits
+        if limit > 500:
+            limit = 500  # Cap at 500 for reasonable performance
     
     # Validate country parameter
     if country is not None:
@@ -192,7 +193,7 @@ def get_meta_ads(
         get_scrapecreators_api_key()
         
         # Fetch ads with enhanced parameters
-        ads = get_ads(platform_id.strip(), limit or 20, country, trim)
+        ads = get_ads(platform_id.strip(), limit or 50, country, trim)
         
         if not ads:
             return {
@@ -214,6 +215,7 @@ def get_meta_ads(
             "total_available": len(ads),  # This would be updated with actual pagination info
             "has_more": False,  # This would be updated based on cursor availability
             "cursor": None,  # This would be updated with actual cursor from API
+            "source_citation": f"[Facebook Ad Library - Platform ID: {platform_id}](https://www.facebook.com/ads/library/)",
             "error": None
         }
         
@@ -242,7 +244,7 @@ def get_meta_ads(
 
 
 @mcp.tool(
-  description="Download and analyze ad images for objective visual elements, text content, composition, and technical details. Uses intelligent caching to avoid re-downloading images. Provides factual observations without subjective interpretation to enable strategic analysis by the user.",
+  description="REQUIRED for analyzing images from Facebook ads. Download and analyze ad images to extract visual elements, text content, colors, people, brand elements, and composition details. This tool should be used for EVERY image URL returned by get_meta_ads when doing comprehensive analysis. Uses intelligent caching so multiple image analysis calls are efficient and cost-free.",
   annotations={
     "title": "Analyze Ad Image Content",
     "readOnlyHint": True,
@@ -250,36 +252,30 @@ def get_meta_ads(
   }
 )
 def analyze_ad_image(media_url: str, brand_name: Optional[str] = None, ad_id: Optional[str] = None) -> Dict[str, Any]:
-    """Download and analyze ad images for comprehensive objective analysis with intelligent caching.
+    """Download Facebook ad images and prepare them for visual analysis by Claude Desktop.
     
-    This tool fetches an image from the provided URL and performs detailed visual analysis,
-    extracting factual information about text content, visual elements, composition, colors,
-    people, brand elements, and technical specifications. Uses a database cache to avoid
-    re-downloading images and can cache analysis results for efficiency.
+    This tool downloads images from Facebook Ad Library URLs and provides them in a format
+    that Claude Desktop can analyze using its vision capabilities. Images are cached locally
+    to avoid re-downloading. The tool provides detailed analysis instructions to ensure
+    comprehensive, objective visual analysis.
     
     Args:
-        media_url: The direct URL to the image file to analyze. Must be a valid image URL
-                  (jpg, png, gif, webp) that is publicly accessible.
-        brand_name: Optional brand name for better cache organization and metadata.
-        ad_id: Optional ad ID for tracking and metadata purposes.
+        media_url: The direct URL to the Facebook ad image to analyze.
+        brand_name: Optional brand name for cache organization.
+        ad_id: Optional ad ID for tracking purposes.
     
     Returns:
-        A dictionary containing comprehensive objective analysis:
-        - success: Boolean indicating if the analysis was successful
-        - message: Status message describing the result
-        - cached: Boolean indicating if the image was retrieved from cache
-        - analysis: Detailed factual analysis including:
-            * overall_description: General visual description
-            * text_elements: All text found with categorization
-            * people_description: Age, gender, appearance details
-            * brand_elements: Logos, products, brand markers
-            * composition: Layout structure and visual hierarchy
-            * colors: Dominant colors and distribution
-            * images: Visual elements, filters, style
-            * technical_details: Format, dimensions, quality
-            * layout_positioning: Specific element positions
-        - cache_info: Information about cache status and metadata
-        - error: Error details if the analysis failed
+        A dictionary containing:
+        - success: Boolean indicating if download was successful
+        - message: Status message
+        - cached: Boolean indicating if image was retrieved from cache
+        - image_data: Base64 encoded image data for Claude Desktop analysis
+        - media_url: Original image URL
+        - brand_name: Brand name if provided
+        - ad_id: Ad ID if provided  
+        - analysis_instructions: Detailed prompt for objective visual analysis
+        - cache_status: Information about cache usage
+        - error: Error details if download failed
     """
     if not media_url or not media_url.strip():
         return {
@@ -359,12 +355,12 @@ def analyze_ad_image(media_url: str, brand_name: Optional[str] = None, ad_id: Op
             image_data = base64.b64encode(response.content).decode('utf-8')
             file_size = len(response.content)
         
-        # Construct detailed analysis prompt
+        # Construct comprehensive analysis prompt - let Claude Desktop control presentation
         analysis_prompt = """
-Analyze this image and provide the following objective, factual information:
+Analyze this Facebook ad image and extract ALL factual information about:
 
 **Overall Visual Description:**
-- Brief factual description of what is shown in the image
+- Complete description of what is shown in the image
 
 **Text Elements:**
 - Identify and transcribe ALL text present in the image
@@ -378,71 +374,63 @@ Analyze this image and provide the following objective, factual information:
   * "Other" (any other text)
 
 **People Description:**
-- For each person visible: age range, gender, appearance, clothing, pose, facial expression
+- For each person visible: age range, gender, appearance, clothing, pose, facial expression, setting
 
 **Brand Elements:**
 - Logos present (describe and position)
 - Product shots (describe what products are shown)
 - Brand colors or visual identity elements
 
-**Composition:**
+**Composition & Layout:**
 - Layout structure (grid, asymmetrical, centered, etc.)
 - Visual hierarchy (what draws attention first, second, third)
+- Element positioning (top-left, center, bottom-right, etc.)
+- Text overlay vs separate text areas
 - Use of composition techniques (rule of thirds, leading lines, symmetry, etc.)
 
-**Colors:**
-- List dominant colors (specific color names or hex codes if possible)
-- Approximate percentage distribution of colors
-- Background color/type
-
-**Images/Visual Elements:**
-- Describe all visual elements beyond text
-- Note any filters, effects, or styling applied
+**Colors & Visual Style:**
+- List ALL dominant colors (specific color names or hex codes if possible)
+- Background color/type and style
 - Photography style (professional, candid, studio, lifestyle, etc.)
+- Any filters, effects, or styling applied
+
+**Technical & Target Audience Indicators:**
+- Image format and aspect ratio
+- Text readability and contrast
+- Overall image quality
+- Visual cues about target audience (age, lifestyle, interests, demographics)
 - Setting/environment details
 
-**Technical Details:**
-- Image format (static, animated, etc.)
-- Aspect ratio (1:1, 16:9, 9:16, 4:3, etc.)
-- Text readability (high/medium/low contrast)
-- Overall image quality (professional, amateur, low-res, high-res)
+**Message & Theme:**
+- What story or message the visual conveys
+- Emotional tone and mood
+- Marketing strategy indicators
 
-**Layout & Positioning:**
-- Specific position of each major element (top-left, center, bottom-right, etc.)
-- Text overlay vs separate text areas
-- Element spacing and relationships
-
-Return only factual, objective observations. Avoid subjective interpretations, marketing analysis, or strategic commentary.
+Extract ALL this information comprehensively. The presentation format (summary vs detailed breakdown) will be determined based on the user's specific request context.
 """
         
-        # Return image data with analysis prompt for Claude Desktop to process
-        return {
+        # Return simplified response for Claude Desktop to process
+        # Include the image data directly for Claude's vision analysis
+        response = {
             "success": True,
-            "message": f"Successfully prepared image from {media_url} for analysis. {'Used cached image.' if cached_data else 'Downloaded and cached new image.'}",
+            "message": f"Image downloaded and ready for analysis. Source: {media_url}",
             "cached": bool(cached_data),
-            "analysis": {
-                "image_url": media_url,
-                "content_type": content_type,
-                "image_size_bytes": file_size,
-                "analysis_prompt": analysis_prompt,
-                "image_data_base64": image_data,
-                "ready_for_analysis": True,
-                "note": "This tool prepares the image for analysis. Claude Desktop will perform the actual visual analysis using its vision capabilities."
-            },
-            "citation_info": {
-                "markdown_link": f"![Facebook Ad Image]({media_url})",
-                "clickable_reference": f"📷 [View Original Ad Image]({media_url})",
-                "source_citation": f"*Source: Facebook Ad Library - [Original Image]({media_url})*",
-                "brand_context": f"**Brand:** {brand_name}" if brand_name else None,
-                "ad_context": f"**Ad ID:** {ad_id}" if ad_id else None
-            },
-            "cache_info": {
-                "cache_status": "hit" if cached_data else "miss",
-                "brand_name": brand_name,
-                "ad_id": ad_id
-            },
+            "image_data": image_data,
+            "media_url": media_url,
+            "brand_name": brand_name,
+            "ad_id": ad_id,
+            "analysis_instructions": analysis_prompt,
+            "source_citation": f"[Facebook Ad Library - {brand_name if brand_name else 'Ad'} #{ad_id if ad_id else 'Unknown'}]({media_url})",
             "error": None
         }
+        
+        # Add cache info
+        if cached_data:
+            response["cache_status"] = "Used cached image"
+        else:
+            response["cache_status"] = "Downloaded and cached new image"
+            
+        return response
         
     except requests.exceptions.RequestException as e:
         return {
@@ -465,7 +453,7 @@ Return only factual, objective observations. Avoid subjective interpretations, m
 
 
 @mcp.tool(
-  description="Get cache statistics and management information for the image cache system. Shows total cached images, storage usage, and analysis completion status.",
+  description="REQUIRED for checking image cache status and storage usage. Use this tool when users ask about cache statistics, storage space used by cached images, or how many images have been analyzed and cached. Essential for cache management and monitoring.",
   annotations={
     "title": "Get Image Cache Statistics",
     "readOnlyHint": True,
@@ -506,7 +494,7 @@ def get_cache_stats() -> Dict[str, Any]:
 
 
 @mcp.tool(
-  description="Search cached images by brand name, presence of people, or dominant colors. Useful for finding previously analyzed images without re-downloading.",
+  description="REQUIRED for finding previously analyzed ad images in cache. Use this tool when users want to search for cached images by brand name, find images with people, or search by colors. Essential for retrieving past analysis results without re-downloading images.",
   annotations={
     "title": "Search Cached Images",
     "readOnlyHint": True,
@@ -587,7 +575,7 @@ def search_cached_images(
 
 
 @mcp.tool(
-  description="Clean up old cached images and analysis results to free disk space. Removes images older than specified age and provides cleanup statistics.",
+  description="REQUIRED for cleaning up old cached images and freeing disk space. Use this tool when users want to remove old cached images, clean up storage space, or when cache becomes too large. Essential for cache maintenance and storage management.",
   annotations={
     "title": "Cleanup Image Cache",
     "readOnlyHint": False,
