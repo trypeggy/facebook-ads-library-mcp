@@ -429,6 +429,13 @@ Return only factual, objective observations. Avoid subjective interpretations, m
                 "ready_for_analysis": True,
                 "note": "This tool prepares the image for analysis. Claude Desktop will perform the actual visual analysis using its vision capabilities."
             },
+            "citation_info": {
+                "markdown_link": f"![Facebook Ad Image]({media_url})",
+                "clickable_reference": f"📷 [View Original Ad Image]({media_url})",
+                "source_citation": f"*Source: Facebook Ad Library - [Original Image]({media_url})*",
+                "brand_context": f"**Brand:** {brand_name}" if brand_name else None,
+                "ad_context": f"**Ad ID:** {ad_id}" if ad_id else None
+            },
             "cache_info": {
                 "cache_status": "hit" if cached_data else "miss",
                 "brand_name": brand_name,
