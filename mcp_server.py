@@ -82,6 +82,7 @@ def get_meta_platform_id(brand_name: str) -> Dict[str, Any]:
             "message": f"Found {len(platform_ids)} matching brand(s) for '{brand_name}' in the Meta Ad Library.",
             "platform_ids": platform_ids,
             "total_results": len(platform_ids),
+            "ad_library_search_url": "https://www.facebook.com/ads/library/",
             "source_citation": f"[Facebook Ad Library Search](https://www.facebook.com/ads/library/)",
             "error": None
         }
@@ -215,6 +216,8 @@ def get_meta_ads(
             "total_available": len(ads),  # This would be updated with actual pagination info
             "has_more": False,  # This would be updated based on cursor availability
             "cursor": None,  # This would be updated with actual cursor from API
+            "platform_id": platform_id,
+            "ad_library_url": "https://www.facebook.com/ads/library/",
             "source_citation": f"[Facebook Ad Library - Platform ID: {platform_id}](https://www.facebook.com/ads/library/)",
             "error": None
         }
@@ -413,13 +416,14 @@ Extract ALL this information comprehensively. The presentation format (summary v
         # Include the image data directly for Claude's vision analysis
         response = {
             "success": True,
-            "message": f"Image downloaded and ready for analysis. Source: {media_url}",
+            "message": f"Image downloaded and ready for analysis.",
             "cached": bool(cached_data),
             "image_data": image_data,
             "media_url": media_url,
             "brand_name": brand_name,
             "ad_id": ad_id,
             "analysis_instructions": analysis_prompt,
+            "ad_library_url": "https://www.facebook.com/ads/library/",
             "source_citation": f"[Facebook Ad Library - {brand_name if brand_name else 'Ad'} #{ad_id if ad_id else 'Unknown'}]({media_url})",
             "error": None
         }
