@@ -10,7 +10,7 @@ Here's an example of what you can do when it's connected to Claude.
 https://github.com/user-attachments/assets/a47aa689-e89d-4d4b-9df7-6eb3a81937ee
 
 
-> To get updates on this and other projects we work on [enter your email here](https://tally.so/r/np6rYy)
+> To get updates on this and other projects we work on [subscribe here](https://talknerdytome88.substack.com/subscribe)
 
 PS: Join our [Twitter community](https://twitter.com/i/communities/1937504082635170114) for all things MCP 
 
@@ -29,8 +29,6 @@ What messaging is 'AnthropicAI' running right now in their ads?
 ```plaintext
 Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and 'OpenAI'. Give it a nice forwardable summary.
 ```
-
-> Don't want to deal with code? [Try our no-code version](https://tally.so/r/np6dzB)
 
 ---
 
@@ -91,12 +89,12 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
    ~/.cursor/mcp.json
    ```
 
-   **For Smithery:**
+   **For Cursor:**
    
-   To install Facebook Ads Library for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@trypeggy/facebook-ads-library-mcp):
+   Save this as `mcp.json` in your Cursor configuration directory at:
 
-   ```bash
-   npx -y @smithery/cli install @trypeggy/facebook-ads-library-mcp --client claude
+   ```
+   ~/.cursor/mcp.json
    ```
 
 4. **Restart Claude Desktop / Cursor**
@@ -121,6 +119,10 @@ This MCP server provides tools for interacting with Facebook Ads library objects
 | ---------------------- | -------------------------------------------------- |
 | `get_meta_platform_id` | Returns platform ID given one or many brand names |
 | `get_meta_ads`         | Retrieves ads for a specific page (platform ID)   |
+| `analyze_ad_image`     | Analyzes ad images for visual elements, text, colors, and composition |
+| `get_cache_stats`      | Gets statistics about cached images and storage usage |
+| `search_cached_images` | Searches previously analyzed images by brand, colors, or people |
+| `cleanup_image_cache`  | Cleans up old cached images to free disk space    |
 
 ---
 
@@ -142,4 +144,3 @@ This project is licensed under the MIT License.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.12+-green.svg)
-[![smithery badge](https://smithery.ai/badge/@trypeggy/facebook-ads-library-mcp)](https://smithery.ai/server/@trypeggy/facebook-ads-library-mcp)
