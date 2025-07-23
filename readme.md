@@ -2,7 +2,7 @@
 
 This is a Model Context Protocol (MCP) server for the Facebook Ads Library.
 
-With this you can search Facebook's public ads library for any company or brand, see what they're currently running and analyze their advertising. You can analyse ad images/text, get video links, compare companies' strategies, and get insights into what's working in their campaigns.
+With this you can search Facebook's public ads library for any company or brand, see what they're currently running and analyze their advertising. You can analyze ad images/text, analyze video ads with comprehensive insights, compare companies' strategies, and get insights into what's working in their campaigns.
 
 Here's an example of what you can do when it's connected to Claude.
 
@@ -19,11 +19,15 @@ PS: Join our [Twitter community](https://twitter.com/i/communities/1937504082635
 ## Example Prompts
 
 ```plaintext
-How many ads is 'AnthropicAI' running? What’s their split across video and image?
+How many ads is 'AnthropicAI' running? What's their split across video and image?
 ```
 
 ```plaintext
 What messaging is 'AnthropicAI' running right now in their ads?
+```
+
+```plaintext
+Analyze the video ads from 'Nike' and extract their visual storytelling strategy, pacing, and brand messaging techniques.
 ```
 
 ```plaintext
@@ -40,6 +44,7 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
 - Anthropic Claude Desktop app (or Cursor)
 - Pip (Python package manager), install with `python -m pip install`
 - An access token for [Scrape Creators](https://scrapecreators.com/)
+- A Google Gemini API key for video analysis (optional, only needed for video ads)
 
 ### Steps
 
@@ -50,14 +55,16 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
    cd facebook-ads-library-mcp
    ```
 
-2. **Obtain an API token from Scrape Creators**
+2. **Obtain API tokens**
 
-   Sign up [here](https://scrapecreators.com/)
+   - Sign up for Scrape Creators [here](https://scrapecreators.com/)
+   - Get a Google Gemini API key [here](https://aistudio.google.com/app/apikey) (optional, for video analysis)
 
 3. **Connect to the MCP server**
 
-   Copy the below json with the appropriate `{{PATH}}` values and `{{API KEY}}`:
+   Copy the below json with the appropriate `{{PATH}}` values and `{{API KEYS}}`:
 
+   **Basic setup (image analysis only):**
    ```json
    {
      "mcpServers": {
@@ -67,6 +74,24 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
            "{{PATH_TO_SRC}}/fb_ad_library_mcp/src/mcp_server.py",
            "--scrapecreators-api-key",
            "{{YOUR_SCRAPECREATORS_API_KEY}}"
+         ]
+       }
+     }
+   }
+   ```
+
+   **Full setup (image + video analysis):**
+   ```json
+   {
+     "mcpServers": {
+       "fb_ad_library": {
+         "command": "python",
+         "args": [
+           "{{PATH_TO_SRC}}/fb_ad_library_mcp/src/mcp_server.py",
+           "--scrapecreators-api-key",
+           "{{YOUR_SCRAPECREATORS_API_KEY}}",
+           "--gemini-api-key",
+           "{{YOUR_GEMINI_API_KEY}}"
          ]
        }
      }
@@ -120,9 +145,10 @@ This MCP server provides tools for interacting with Facebook Ads library objects
 | `get_meta_platform_id` | Returns platform ID given one or many brand names |
 | `get_meta_ads`         | Retrieves ads for a specific page (platform ID)   |
 | `analyze_ad_image`     | Analyzes ad images for visual elements, text, colors, and composition |
-| `get_cache_stats`      | Gets statistics about cached images and storage usage |
-| `search_cached_images` | Searches previously analyzed images by brand, colors, or people |
-| `cleanup_image_cache`  | Cleans up old cached images to free disk space    |
+| `analyze_ad_video`     | Analyzes ad videos using Gemini AI for comprehensive video insights |
+| `get_cache_stats`      | Gets statistics about cached media (images and videos) and storage usage |
+| `search_cached_media`  | Searches previously analyzed media by brand, colors, people, or media type |
+| `cleanup_media_cache`  | Cleans up old cached media files to free disk space |
 
 ---
 

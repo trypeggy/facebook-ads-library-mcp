@@ -1,9 +1,12 @@
 from mcp.server.fastmcp import FastMCP
 from src.services.scrapecreators_service import get_platform_id, get_ads, get_scrapecreators_api_key
-from src.services.image_cache_service import image_cache
+from src.services.media_cache_service import media_cache, image_cache  # Keep image_cache for backward compatibility
+from src.services.gemini_service import configure_gemini, upload_video_to_gemini, analyze_video_with_gemini, cleanup_gemini_file
 from typing import Dict, Any, List, Optional
 import requests
 import base64
+import tempfile
+import os
 
 
 INSTRUCTIONS = """
@@ -457,33 +460,39 @@ Extract ALL this information comprehensively. The presentation format (summary v
 
 
 @mcp.tool(
-  description="REQUIRED for checking image cache status and storage usage. Use this tool when users ask about cache statistics, storage space used by cached images, or how many images have been analyzed and cached. Essential for cache management and monitoring.",
+  description="REQUIRED for checking media cache status and storage usage. Use this tool when users ask about cache statistics, storage space used by cached media (images and videos), or how many files have been analyzed and cached. Essential for cache management and monitoring.",
   annotations={
-    "title": "Get Image Cache Statistics",
+    "title": "Get Media Cache Statistics",
     "readOnlyHint": True,
     "openWorldHint": False
   }
 )
 def get_cache_stats() -> Dict[str, Any]:
-    """Get comprehensive statistics about the image cache.
+    """Get comprehensive statistics about the media cache (images and videos).
     
     Returns:
         A dictionary containing:
         - success: Boolean indicating if stats were retrieved successfully
         - message: Status message
         - stats: Cache statistics including:
+            * total_files: Total number of cached files
             * total_images: Number of cached images
+            * total_videos: Number of cached videos
             * total_size_mb/gb: Storage space used
-            * analyzed_images: Number of images with cached analysis
+            * analyzed_files: Number of files with cached analysis
             * unique_brands: Number of different brands cached
         - error: Error details if retrieval failed
     """
     try:
-        stats = image_cache.get_cache_stats()
+        stats = media_cache.get_cache_stats()
+        
+        total_files = stats.get('total_files', 0)
+        total_images = stats.get('total_images', 0)
+        total_videos = stats.get('total_videos', 0)
         
         return {
             "success": True,
-            "message": f"Cache contains {stats['total_images']} images using {stats['total_size_gb']}GB storage",
+            "message": f"Cache contains {total_files} files ({total_images} images, {total_videos} videos) using {stats.get('total_size_gb', 0)}GB storage",
             "stats": stats,
             "error": None
         }
@@ -498,40 +507,43 @@ def get_cache_stats() -> Dict[str, Any]:
 
 
 @mcp.tool(
-  description="REQUIRED for finding previously analyzed ad images in cache. Use this tool when users want to search for cached images by brand name, find images with people, or search by colors. Essential for retrieving past analysis results without re-downloading images.",
+  description="REQUIRED for finding previously analyzed ad media (images and videos) in cache. Use this tool when users want to search for cached media by brand name, find media with people, search by colors, or filter by media type. Essential for retrieving past analysis results without re-downloading media.",
   annotations={
-    "title": "Search Cached Images",
+    "title": "Search Cached Media",
     "readOnlyHint": True,
     "openWorldHint": True
   }
 )
-def search_cached_images(
+def search_cached_media(
     brand_name: Optional[str] = None,
     has_people: Optional[bool] = None,
     color_contains: Optional[str] = None,
+    media_type: Optional[str] = None,
     limit: Optional[int] = 20
 ) -> Dict[str, Any]:
-    """Search cached images by various criteria.
+    """Search cached media (images and videos) by various criteria.
     
     Args:
         brand_name: Filter by exact brand name match
-        has_people: Filter by presence of people in images (True/False)
+        has_people: Filter by presence of people in media (True/False)
         color_contains: Filter by dominant color (partial match, e.g., "red", "blue")
+        media_type: Filter by media type ('image' or 'video')
         limit: Maximum number of results to return (default: 20)
     
     Returns:
         A dictionary containing:
         - success: Boolean indicating if search was successful
         - message: Status message
-        - results: List of matching cached images with metadata
+        - results: List of matching cached media with metadata
         - count: Number of results returned
         - error: Error details if search failed
     """
     try:
-        results = image_cache.search_cached_images(
+        results = media_cache.search_cached_media(
             brand_name=brand_name,
             has_people=has_people,
-            color_contains=color_contains
+            color_contains=color_contains,
+            media_type=media_type
         )
         
         # Limit results
@@ -557,12 +569,14 @@ def search_cached_images(
             search_criteria.append(f"has_people: {has_people}")
         if color_contains:
             search_criteria.append(f"color: {color_contains}")
+        if media_type:
+            search_criteria.append(f"media_type: {media_type}")
         
         criteria_str = ", ".join(search_criteria) if search_criteria else "no filters"
         
         return {
             "success": True,
-            "message": f"Found {len(clean_results)} cached images matching criteria: {criteria_str}",
+            "message": f"Found {len(clean_results)} cached media files matching criteria: {criteria_str}",
             "results": clean_results,
             "count": len(clean_results),
             "error": None
@@ -579,18 +593,18 @@ def search_cached_images(
 
 
 @mcp.tool(
-  description="REQUIRED for cleaning up old cached images and freeing disk space. Use this tool when users want to remove old cached images, clean up storage space, or when cache becomes too large. Essential for cache maintenance and storage management.",
+  description="REQUIRED for cleaning up old cached media files (images and videos) and freeing disk space. Use this tool when users want to remove old cached media, clean up storage space, or when cache becomes too large. Essential for cache maintenance and storage management.",
   annotations={
-    "title": "Cleanup Image Cache",
+    "title": "Cleanup Media Cache",
     "readOnlyHint": False,
     "openWorldHint": False
   }
 )
-def cleanup_image_cache(max_age_days: Optional[int] = 30) -> Dict[str, Any]:
-    """Clean up old cached images and database entries.
+def cleanup_media_cache(max_age_days: Optional[int] = 30) -> Dict[str, Any]:
+    """Clean up old cached media files (images and videos) and database entries.
     
     Args:
-        max_age_days: Maximum age in days before images are deleted (default: 30)
+        max_age_days: Maximum age in days before media files are deleted (default: 30)
     
     Returns:
         A dictionary containing:
@@ -601,26 +615,32 @@ def cleanup_image_cache(max_age_days: Optional[int] = 30) -> Dict[str, Any]:
     """
     try:
         # Get stats before cleanup
-        stats_before = image_cache.get_cache_stats()
+        stats_before = media_cache.get_cache_stats()
         
         # Perform cleanup
-        image_cache.cleanup_old_cache(max_age_days=max_age_days or 30)
+        media_cache.cleanup_old_cache(max_age_days=max_age_days or 30)
         
         # Get stats after cleanup
-        stats_after = image_cache.get_cache_stats()
+        stats_after = media_cache.get_cache_stats()
         
-        images_removed = stats_before['total_images'] - stats_after['total_images']
-        space_freed_mb = stats_before['total_size_mb'] - stats_after['total_size_mb']
+        files_removed = stats_before.get('total_files', 0) - stats_after.get('total_files', 0)
+        images_removed = stats_before.get('total_images', 0) - stats_after.get('total_images', 0)
+        videos_removed = stats_before.get('total_videos', 0) - stats_after.get('total_videos', 0)
+        space_freed_mb = stats_before.get('total_size_mb', 0) - stats_after.get('total_size_mb', 0)
         
         return {
             "success": True,
-            "message": f"Cleanup completed: removed {images_removed} images, freed {space_freed_mb:.2f}MB",
+            "message": f"Cleanup completed: removed {files_removed} files ({images_removed} images, {videos_removed} videos), freed {space_freed_mb:.2f}MB",
             "cleanup_stats": {
+                "total_files_removed": files_removed,
                 "images_removed": images_removed,
+                "videos_removed": videos_removed,
                 "space_freed_mb": round(space_freed_mb, 2),
                 "max_age_days": max_age_days or 30,
-                "images_remaining": stats_after['total_images'],
-                "space_remaining_mb": stats_after['total_size_mb']
+                "files_remaining": stats_after.get('total_files', 0),
+                "images_remaining": stats_after.get('total_images', 0),
+                "videos_remaining": stats_after.get('total_videos', 0),
+                "space_remaining_mb": stats_after.get('total_size_mb', 0)
             },
             "error": None
         }
@@ -630,6 +650,265 @@ def cleanup_image_cache(max_age_days: Optional[int] = 30) -> Dict[str, Any]:
             "success": False,
             "message": f"Failed to cleanup cache: {str(e)}",
             "cleanup_stats": {},
+            "error": str(e)
+        }
+
+
+# Backward compatibility aliases
+def search_cached_images(brand_name: Optional[str] = None, has_people: Optional[bool] = None, 
+                        color_contains: Optional[str] = None, limit: Optional[int] = 20) -> Dict[str, Any]:
+    """Search cached images by criteria (backward compatibility)."""
+    return search_cached_media(brand_name, has_people, color_contains, 'image', limit)
+
+cleanup_image_cache = cleanup_media_cache
+
+
+@mcp.tool(
+  description="REQUIRED for analyzing video ads from Facebook. Download and analyze ad videos using Gemini's advanced video understanding capabilities. Extracts visual storytelling, audio elements, pacing, scene transitions, brand messaging, and marketing strategy insights. Uses intelligent caching for efficiency and includes comprehensive video analysis.",
+  annotations={
+    "title": "Analyze Ad Video Content",
+    "readOnlyHint": True,
+    "openWorldHint": True
+  }
+)
+def analyze_ad_video(media_url: str, brand_name: Optional[str] = None, ad_id: Optional[str] = None) -> Dict[str, Any]:
+    """Download Facebook ad videos and analyze them using Gemini's video understanding capabilities.
+    
+    This tool downloads videos from Facebook Ad Library URLs and provides comprehensive analysis
+    using Google's Gemini AI model. Videos are cached locally to avoid re-downloading, and 
+    analysis results are cached to improve performance and reduce API costs.
+    
+    Args:
+        media_url: The direct URL to the Facebook ad video to analyze.
+        brand_name: Optional brand name for cache organization.
+        ad_id: Optional ad ID for tracking purposes.
+    
+    Returns:
+        A dictionary containing:
+        - success: Boolean indicating if analysis was successful
+        - message: Status message
+        - cached: Boolean indicating if video was retrieved from cache
+        - analysis: Comprehensive video analysis results
+        - media_url: Original video URL
+        - brand_name: Brand name if provided
+        - ad_id: Ad ID if provided
+        - cache_status: Information about cache usage
+        - error: Error details if analysis failed
+    """
+    if not media_url or not media_url.strip():
+        return {
+            "success": False,
+            "message": "Media URL must be provided and cannot be empty.",
+            "cached": False,
+            "analysis": {},
+            "cache_info": {},
+            "error": "Missing or empty media URL"
+        }
+    
+    try:
+        # Check cache first
+        cached_data = media_cache.get_cached_media(media_url.strip(), media_type='video')
+        
+        if cached_data and cached_data.get('analysis_results'):
+            # Return cached analysis results
+            return {
+                "success": True,
+                "message": f"Retrieved cached video analysis for {media_url}",
+                "cached": True,
+                "analysis": cached_data['analysis_results'],
+                "cache_info": {
+                    "cached_at": cached_data.get('downloaded_at'),
+                    "analysis_cached_at": cached_data.get('analysis_cached_at'),
+                    "file_size": cached_data.get('file_size'),
+                    "brand_name": cached_data.get('brand_name'),
+                    "ad_id": cached_data.get('ad_id'),
+                    "duration_seconds": cached_data.get('duration_seconds')
+                },
+                "ad_library_url": "https://www.facebook.com/ads/library/",
+                "source_citation": f"[Facebook Ad Library - {brand_name if brand_name else 'Ad'} #{ad_id if ad_id else 'Unknown'}]({media_url})",
+                "error": None
+            }
+        
+        # Download video if not cached or no analysis available
+        video_path = None
+        file_size = None
+        duration_seconds = None
+        
+        if cached_data:
+            # Video is cached but no analysis results yet
+            video_path = cached_data['file_path']
+            file_size = cached_data['file_size']
+            duration_seconds = cached_data.get('duration_seconds')
+        else:
+            # Download the video
+            response = requests.get(media_url.strip(), timeout=60)  # Longer timeout for videos
+            response.raise_for_status()
+            
+            # Check if it's a video
+            content_type = response.headers.get('content-type', '').lower()
+            if not any(vid_type in content_type for vid_type in ['video/', 'mp4', 'mov', 'webm', 'avi']):
+                return {
+                    "success": False,
+                    "message": f"URL does not point to a valid video. Content type: {content_type}",
+                    "cached": False,
+                    "analysis": {},
+                    "cache_info": {},
+                    "error": f"Invalid content type: {content_type}"
+                }
+            
+            # Cache the downloaded video
+            file_path = media_cache.cache_media(
+                url=media_url.strip(),
+                media_data=response.content,
+                content_type=content_type,
+                media_type='video',
+                brand_name=brand_name,
+                ad_id=ad_id
+            )
+            
+            video_path = file_path
+            file_size = len(response.content)
+        
+        # Configure Gemini API
+        try:
+            model = configure_gemini()
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Failed to configure Gemini API: {str(e)}. Ensure --gemini-api-key is provided or GEMINI_API_KEY environment variable is set.",
+                "cached": bool(cached_data),
+                "analysis": {},
+                "cache_info": {},
+                "error": f"Gemini configuration error: {str(e)}"
+            }
+        
+        # Create structured video analysis prompt based on user requirements
+        analysis_prompt = """
+Analyze this Facebook ad video and provide a comprehensive, structured breakdown following this exact format:
+
+**SCENE ANALYSIS:**
+Analyze the video at a scene-by-scene level. For each identified scene, provide:
+
+Scene [Number]: [Brief scene title]
+1. Visual Description:
+   - Detailed description of key visuals within the scene
+   - Appearance and demographics of featured individuals (age, gender, notable characteristics)
+   - Specific camera angles and movements used
+
+2. Text Elements:
+   - Document ALL text elements appearing in the scene
+   - Categorize each text element as:
+     * "Text Hook" (introductory text designed to grab attention)
+     * "CTA (middle)" (call-to-action appearing mid-video)
+     * "CTA (end)" (final call-to-action)
+
+3. Brand Elements:
+   - Note any visible brand logos or product placements
+   - Provide brief descriptions and specific timing within the scene
+
+4. Audio Analysis:
+   - Transcription or detailed summary of any voiceover present
+   - Describe voiceover characteristics: tone, pitch, conveyed emotions
+   - Identify and briefly describe notable sound effects
+
+5. Music Analysis:
+   - Music present: [true/false]
+   - If true: Brief description or identification of music style/track
+
+6. Scene Transition:
+   - Describe the style and pacing of transition to next scene (quick cuts, fades, dynamic transitions, etc.)
+
+**OVERALL VIDEO ANALYSIS:**
+
+**Ad Format:**
+- Identify the specific ad format (single video, carousel, story, etc.)
+- Aspect ratio and orientation
+- Duration and pacing style
+
+**Notable Angles:**
+- List all significant camera angles used throughout the video
+- Comment on their effectiveness and purpose
+
+**Overall Messaging:**
+- Primary message or value proposition
+- Secondary messages or supporting points
+- Target audience indicators
+
+**Hook Analysis:**
+- Primary hook type: Text, Visual, or VoiceOver
+- Description of the hook and its placement
+- Effectiveness assessment of attention-grabbing elements
+
+Provide detailed, factual observations that would help understand the video's marketing strategy and effectiveness. Focus on specific, actionable insights.
+"""
+        
+        # Upload video to Gemini and analyze
+        gemini_file = None
+        try:
+            # Upload video to Gemini File API
+            gemini_file = upload_video_to_gemini(video_path)
+            
+            # Analyze video with Gemini
+            analysis_text = analyze_video_with_gemini(model, gemini_file, analysis_prompt)
+            
+            # Structure the analysis results
+            analysis_results = {
+                "raw_analysis": analysis_text,
+                "analysis_timestamp": media_cache._generate_url_hash(str(hash(analysis_text))),
+                "model_used": "gemini-2.0-flash-exp",
+                "video_metadata": {
+                    "file_size_mb": round(file_size / (1024 * 1024), 2) if file_size else None,
+                    "duration_seconds": duration_seconds,
+                    "content_type": cached_data.get('content_type') if cached_data else response.headers.get('content-type')
+                }
+            }
+            
+            # Cache analysis results
+            media_cache.update_analysis_results(media_url.strip(), analysis_results)
+            
+            # Cleanup Gemini file to save storage
+            if gemini_file:
+                cleanup_gemini_file(gemini_file.name)
+            
+            return {
+                "success": True,
+                "message": f"Video analysis completed successfully",
+                "cached": bool(cached_data),
+                "analysis": analysis_results,
+                "media_url": media_url,
+                "brand_name": brand_name,
+                "ad_id": ad_id,
+                "cache_status": "Used cached video" if cached_data else "Downloaded and cached new video",
+                "ad_library_url": "https://www.facebook.com/ads/library/",
+                "source_citation": f"[Facebook Ad Library - {brand_name if brand_name else 'Ad'} #{ad_id if ad_id else 'Unknown'}]({media_url})",
+                "error": None
+            }
+            
+        except Exception as e:
+            # Cleanup Gemini file in case of error
+            if gemini_file:
+                try:
+                    cleanup_gemini_file(gemini_file.name)
+                except:
+                    pass
+            raise e
+        
+    except requests.exceptions.RequestException as e:
+        return {
+            "success": False,
+            "message": f"Failed to download video from {media_url}: {str(e)}",
+            "cached": False,
+            "analysis": {},
+            "cache_info": {},
+            "error": f"Network error: {str(e)}"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Failed to analyze video from {media_url}: {str(e)}",
+            "cached": bool(cached_data) if 'cached_data' in locals() else False,
+            "analysis": {},
+            "cache_info": {},
             "error": str(e)
         }
 
