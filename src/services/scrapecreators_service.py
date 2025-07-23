@@ -199,9 +199,9 @@ def parse_fb_ads(resJson: Dict[str, Any], trim: bool = True) -> List[Dict[str, A
             end_date = ad.get('end_date')
 
             if start_date is not None:
-                start_date = datetime.fromtimestamp(start_date)
+                start_date = datetime.fromtimestamp(start_date).isoformat()
             if end_date is not None:
-                end_date = datetime.fromtimestamp(end_date)
+                end_date = datetime.fromtimestamp(end_date).isoformat()
 
             # Parse snapshot data
             snapshot = ad.get('snapshot', {})

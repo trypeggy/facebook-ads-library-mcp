@@ -46,7 +46,34 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
 - An access token for [Scrape Creators](https://scrapecreators.com/)
 - A Google Gemini API key for video analysis (optional, only needed for video ads)
 
-### Steps
+### Quick Install (Recommended)
+
+1. **Clone and run the install script**
+
+   ```bash
+   git clone https://github.com/trypeggy/facebook-ads-library-mcp.git
+   cd facebook-ads-library-mcp
+   
+   # For macOS/Linux:
+   ./install.sh
+   
+   # For Windows:
+   install.bat
+   ```
+
+2. **Configure your API keys**
+
+   Edit the `.env` file that was created and add your API keys:
+   - Get your ScrapeCreators API key at [scrapecreators.com](https://scrapecreators.com/)
+   - Get your Gemini API key at [Google AI Studio](https://aistudio.google.com/app/apikey) (optional, for video analysis)
+
+3. **Follow the displayed MCP configuration**
+
+   The install script will show you the exact configuration to add to Claude Desktop or Cursor.
+
+### Manual Install
+
+If you prefer to install manually:
 
 1. **Clone this repository**
 
@@ -55,48 +82,45 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
    cd facebook-ads-library-mcp
    ```
 
-2. **Obtain API tokens**
+2. **Install dependencies**
 
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Configure API keys**
+
+   Copy the template and configure your API keys:
+
+   ```bash
+   cp .env.template .env
+   # Then edit .env with your actual API keys
+   ```
+
+   **To obtain API keys:**
    - Sign up for Scrape Creators [here](https://scrapecreators.com/)
    - Get a Google Gemini API key [here](https://aistudio.google.com/app/apikey) (optional, for video analysis)
 
-3. **Connect to the MCP server**
+4. **Connect to the MCP server**
 
-   Copy the below json with the appropriate `{{PATH}}` values and `{{API KEYS}}`:
+   Add the MCP server configuration to your Claude Desktop or Cursor config:
 
-   **Basic setup (image analysis only):**
    ```json
    {
      "mcpServers": {
        "fb_ad_library": {
          "command": "python",
          "args": [
-           "{{PATH_TO_SRC}}/fb_ad_library_mcp/src/mcp_server.py",
-           "--scrapecreators-api-key",
-           "{{YOUR_SCRAPECREATORS_API_KEY}}"
+           "{{PATH_TO_PROJECT}}/facebook-ads-library-mcp/mcp_server.py"
          ]
        }
      }
    }
    ```
 
-   **Full setup (image + video analysis):**
-   ```json
-   {
-     "mcpServers": {
-       "fb_ad_library": {
-         "command": "python",
-         "args": [
-           "{{PATH_TO_SRC}}/fb_ad_library_mcp/src/mcp_server.py",
-           "--scrapecreators-api-key",
-           "{{YOUR_SCRAPECREATORS_API_KEY}}",
-           "--gemini-api-key",
-           "{{YOUR_GEMINI_API_KEY}}"
-         ]
-       }
-     }
-   }
-   ```
+   Replace `{{PATH_TO_PROJECT}}` with the full path to where you cloned this repository.
+
+   **Note:** API keys are now automatically loaded from the `.env` file, so you don't need to pass them as command line arguments.
 
    **For Claude Desktop:**
    
@@ -114,15 +138,7 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
    ~/.cursor/mcp.json
    ```
 
-   **For Cursor:**
-   
-   Save this as `mcp.json` in your Cursor configuration directory at:
-
-   ```
-   ~/.cursor/mcp.json
-   ```
-
-4. **Restart Claude Desktop / Cursor**
+5. **Restart Claude Desktop / Cursor**
    
    Open Claude Desktop and you should now see the Facebook Ads Library as an available integration.
 
@@ -153,6 +169,24 @@ This MCP server provides tools for interacting with Facebook Ads library objects
 ---
 
 ## Troubleshooting
+
+### Common Issues
+
+**API Key Not Found Error:**
+- Ensure your `.env` file is in the project root directory
+- If you don't have a `.env` file, copy it from the template: `cp .env.template .env`
+- Check that your API keys are correctly formatted without quotes
+- Verify the `.env` file contains `SCRAPECREATORS_API_KEY=your_key_here`
+- For video analysis, ensure `GEMINI_API_KEY=your_key_here` is also added
+
+**Video Analysis Not Working:**
+- Confirm you have a valid Google Gemini API key in your `.env` file
+- Video analysis requires the `GEMINI_API_KEY` environment variable
+
+**MCP Server Connection Issues:**
+- Verify the path in your MCP configuration points to the correct location
+- Make sure you've installed all dependencies with `pip install -r requirements.txt`
+- Restart Claude Desktop/Cursor after configuration changes
 
 For additional Claude Desktop integration troubleshooting, see the [MCP documentation](https://modelcontextprotocol.io/quickstart/server#claude-for-desktop-integration-issues). The documentation includes helpful tips for checking logs and resolving common issues.
 

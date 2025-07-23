@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import google.generativeai as genai
+from google.generativeai.types import File
 from typing import Optional
 
 # Set up logger
@@ -58,7 +59,7 @@ def configure_gemini() -> genai.GenerativeModel:
     return model
 
 
-def upload_video_to_gemini(video_path: str) -> genai.File:
+def upload_video_to_gemini(video_path: str) -> File:
     """
     Upload a video file to Gemini File API for analysis.
     
@@ -92,7 +93,7 @@ def upload_video_to_gemini(video_path: str) -> genai.File:
         raise
 
 
-def analyze_video_with_gemini(model: genai.GenerativeModel, video_file: genai.File, prompt: str) -> str:
+def analyze_video_with_gemini(model: genai.GenerativeModel, video_file: File, prompt: str) -> str:
     """
     Analyze a video using Gemini with a custom prompt.
     
