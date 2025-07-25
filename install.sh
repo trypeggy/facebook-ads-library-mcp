@@ -40,11 +40,21 @@ else
     exit 1
 fi
 
-# Install dependencies
+# Create virtual environment
 echo
-echo "📚 Installing Python dependencies..."
-$PIP_CMD install -r requirements.txt
-echo "   ✅ Dependencies installed successfully"
+echo "🏗️  Creating virtual environment..."
+if [ -d "venv" ]; then
+    echo "   ⚠️  Virtual environment already exists, skipping creation"
+else
+    python3 -m venv venv
+    echo "   ✅ Virtual environment created successfully"
+fi
+
+# Install dependencies in virtual environment
+echo
+echo "📚 Installing Python dependencies in virtual environment..."
+./venv/bin/pip install -r requirements.txt
+echo "   ✅ Dependencies installed successfully in virtual environment"
 
 # Create .env file from template
 echo
@@ -79,7 +89,7 @@ cat << EOF
 {
   "mcpServers": {
     "fb_ad_library": {
-      "command": "python3",
+      "command": "$CURRENT_DIR/venv/bin/python",
       "args": [
         "$MCP_CONFIG_PATH"
       ]
@@ -95,7 +105,7 @@ cat << EOF
 {
   "mcpServers": {
     "fb_ad_library": {
-      "command": "python3",
+      "command": "$CURRENT_DIR/venv/bin/python",
       "args": [
         "$MCP_CONFIG_PATH"
       ]

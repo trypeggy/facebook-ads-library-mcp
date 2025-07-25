@@ -61,6 +61,11 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
    install.bat
    ```
 
+   The install script will:
+   - Create a virtual environment for dependency isolation
+   - Install all required dependencies
+   - Set up your configuration files
+
 2. **Configure your API keys**
 
    Edit the `.env` file that was created and add your API keys:
@@ -82,10 +87,11 @@ If you prefer to install manually:
    cd facebook-ads-library-mcp
    ```
 
-2. **Install dependencies**
+2. **Create a virtual environment and install dependencies**
 
    ```bash
-   pip install -r requirements.txt
+   python3 -m venv venv
+   ./venv/bin/pip install -r requirements.txt
    ```
 
 3. **Configure API keys**
@@ -109,7 +115,7 @@ If you prefer to install manually:
    {
      "mcpServers": {
        "fb_ad_library": {
-         "command": "python",
+         "command": "{{PATH_TO_PROJECT}}/facebook-ads-library-mcp/venv/bin/python",
          "args": [
            "{{PATH_TO_PROJECT}}/facebook-ads-library-mcp/mcp_server.py"
          ]
@@ -119,6 +125,8 @@ If you prefer to install manually:
    ```
 
    Replace `{{PATH_TO_PROJECT}}` with the full path to where you cloned this repository.
+   
+   **Note:** The configuration uses the virtual environment's Python interpreter (`venv/bin/python`) for better dependency isolation and reliability.
 
    **Note:** API keys are now automatically loaded from the `.env` file, so you don't need to pass them as command line arguments.
 
@@ -185,7 +193,8 @@ This MCP server provides tools for interacting with Facebook Ads library objects
 
 **MCP Server Connection Issues:**
 - Verify the path in your MCP configuration points to the correct location
-- Make sure you've installed all dependencies with `pip install -r requirements.txt`
+- Make sure you've created a virtual environment and installed dependencies with `python3 -m venv venv && ./venv/bin/pip install -r requirements.txt`
+- Ensure your MCP configuration uses the virtual environment Python path (ending with `/venv/bin/python`)
 - Restart Claude Desktop/Cursor after configuration changes
 
 For additional Claude Desktop integration troubleshooting, see the [MCP documentation](https://modelcontextprotocol.io/quickstart/server#claude-for-desktop-integration-issues). The documentation includes helpful tips for checking logs and resolving common issues.
