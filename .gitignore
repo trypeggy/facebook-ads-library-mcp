@@ -6,3 +6,4 @@ pyvenv.cfg
 *.db
 .env
 mcp-inspector-config.json
+CLAUDE.md

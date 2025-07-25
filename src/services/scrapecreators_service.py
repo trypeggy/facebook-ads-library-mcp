@@ -36,13 +36,13 @@ def get_scrapecreators_api_key() -> str:
             token_index = sys.argv.index("--scrapecreators-api-key") + 1
             if token_index < len(sys.argv):
                 SCRAPECREATORS_API_KEY = sys.argv[token_index]
-                print(f"Using ScrapeCreators API key from command line arguments")
+                logger.info(f"Using ScrapeCreators API key from command line arguments")
             else:
                 raise Exception("--scrapecreators-api-key argument provided but no key value followed it")
         # Try environment variable
         elif os.getenv("SCRAPECREATORS_API_KEY"):
             SCRAPECREATORS_API_KEY = os.getenv("SCRAPECREATORS_API_KEY")
-            print(f"Using ScrapeCreators API key from environment variable")
+            logger.info(f"Using ScrapeCreators API key from environment variable")
         else:
             raise Exception("ScrapeCreators API key must be provided via '--scrapecreators-api-key' command line argument or 'SCRAPECREATORS_API_KEY' environment variable")
 
