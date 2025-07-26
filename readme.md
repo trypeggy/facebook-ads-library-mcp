@@ -51,7 +51,7 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
 1. **Clone and run the install script**
 
    ```bash
-   git clone https://github.com/trypeggy/facebook-ads-library-mcp.git
+   git clone http://github.com/talknerdytome-labs/facebook-ads-library-mcp.git
    cd facebook-ads-library-mcp
    
    # For macOS/Linux:
