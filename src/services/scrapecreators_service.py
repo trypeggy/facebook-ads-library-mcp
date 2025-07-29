@@ -3,7 +3,7 @@ import sys
 import os
 import logging
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -15,7 +15,81 @@ ADS_API_URL = "https://api.scrapecreators.com/v1/facebook/adLibrary/company/ads"
 
 SCRAPECREATORS_API_KEY = None
 
+# --- Custom Exceptions ---
+
+class CreditExhaustedException(Exception):
+    """Raised when ScrapeCreators API credits are exhausted."""
+    def __init__(self, message: str, credits_remaining: int = 0, topup_url: str = "https://scrapecreators.com/dashboard"):
+        self.credits_remaining = credits_remaining
+        self.topup_url = topup_url
+        super().__init__(message)
+
+class RateLimitException(Exception):
+    """Raised when ScrapeCreators API rate limit is exceeded."""
+    def __init__(self, message: str, retry_after: int = None):
+        self.retry_after = retry_after
+        super().__init__(message)
+
 # --- Helper Functions ---
+
+def check_credit_status(response: requests.Response) -> Optional[Dict[str, Any]]:
+    """
+    Check response for credit-related information and errors.
+    
+    Args:
+        response: HTTP response from ScrapeCreators API
+        
+    Returns:
+        Dictionary with credit info if available, None otherwise
+        
+    Raises:
+        CreditExhaustedException: If credits are exhausted
+        RateLimitException: If rate limit is exceeded
+    """
+    # Check for credit exhaustion status codes
+    if response.status_code == 402:  # Payment Required
+        raise CreditExhaustedException(
+            "ScrapeCreators API credits exhausted. Please top up your account to continue.",
+            credits_remaining=0
+        )
+    elif response.status_code == 429:  # Too Many Requests
+        retry_after = response.headers.get('retry-after')
+        raise RateLimitException(
+            "ScrapeCreators API rate limit exceeded. Please wait before making more requests.",
+            retry_after=int(retry_after) if retry_after else None
+        )
+    elif response.status_code == 403:  # Forbidden - could indicate credit issues
+        # Check if it's credit-related
+        try:
+            error_data = response.json()
+            if 'credit' in str(error_data).lower() or 'quota' in str(error_data).lower():
+                raise CreditExhaustedException(
+                    "ScrapeCreators API access denied. This may indicate insufficient credits.",
+                    credits_remaining=0
+                )
+        except:
+            pass  # Not JSON or not credit-related
+    
+    # Extract credit information from headers if available
+    credit_info = {}
+    headers = response.headers
+    
+    # Common header names for credit information
+    for header_name in ['x-credits-remaining', 'x-credit-remaining', 'credits-remaining']:
+        if header_name in headers:
+            try:
+                credit_info['credits_remaining'] = int(headers[header_name])
+            except ValueError:
+                pass
+    
+    for header_name in ['x-credit-cost', 'credit-cost', 'x-credits-used']:
+        if header_name in headers:
+            try:
+                credit_info['credit_cost'] = int(headers[header_name])
+            except ValueError:
+                pass
+    
+    return credit_info if credit_info else None
 
 def get_scrapecreators_api_key() -> str:
     """
@@ -73,6 +147,9 @@ def get_platform_id(brand_name: str) -> Dict[str, str]:
         },
         timeout=30  # Add timeout for better error handling
     )
+    
+    # Check for credit-related issues before raising for status
+    credit_info = check_credit_status(response)
     response.raise_for_status()
     content = response.json()
     logger.info(f"Search response for '{brand_name}': {len(content.get('searchResults', []))} results found")
@@ -142,6 +219,13 @@ def get_ads(
             )
             total_requests += 1
             
+            # Check for credit-related issues
+            try:
+                credit_info = check_credit_status(response)
+            except (CreditExhaustedException, RateLimitException):
+                # Re-raise credit/rate limit exceptions to be handled by caller
+                raise
+            
             if response.status_code != 200:
                 logger.error(f"Error getting FB ads for page {page_id}: {response.status_code} {response.text}")
                 break
@@ -171,6 +255,83 @@ def get_ads(
 
     # Trim to requested limit
     return ads[:limit]
+
+
+def get_platform_ids_batch(brand_names: List[str]) -> Dict[str, Dict[str, str]]:
+    """
+    Get Meta Platform IDs for multiple brand names with deduplication.
+    
+    Args:
+        brand_names: List of company or brand names to search for.
+    
+    Returns:
+        Dictionary mapping brand names to their platform ID results.
+        Format: {brand_name: {platform_name: platform_id, ...}, ...}
+    
+    Raises:
+        CreditExhaustedException: If API credits are exhausted
+        RateLimitException: If rate limit is exceeded
+        requests.RequestException: If API requests fail
+    """
+    # Deduplicate brand names while preserving order
+    unique_brands = list(dict.fromkeys(brand_names))
+    results = {}
+    
+    logger.info(f"Batch processing {len(unique_brands)} unique brands from {len(brand_names)} requested")
+    
+    for brand_name in unique_brands:
+        try:
+            platform_ids = get_platform_id(brand_name)
+            results[brand_name] = platform_ids
+            logger.info(f"Successfully retrieved platform IDs for '{brand_name}': {len(platform_ids)} found")
+        except (CreditExhaustedException, RateLimitException):
+            # Re-raise credit/rate limit exceptions immediately
+            raise
+        except Exception as e:
+            logger.error(f"Failed to get platform IDs for '{brand_name}': {str(e)}")
+            results[brand_name] = {}
+    
+    return results
+
+
+def get_ads_batch(platform_ids: List[str], limit: int = 50, country: Optional[str] = None, trim: bool = True) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Get ads for multiple platform IDs with deduplication.
+    
+    Args:
+        platform_ids: List of Meta Platform IDs.
+        limit: Maximum number of ads to retrieve per platform ID.
+        country: Optional country code to filter ads.
+        trim: Whether to trim the response to essential fields only.
+    
+    Returns:
+        Dictionary mapping platform IDs to their ad results.
+        Format: {platform_id: [ad_objects...], ...}
+    
+    Raises:
+        CreditExhaustedException: If API credits are exhausted
+        RateLimitException: If rate limit is exceeded
+        requests.RequestException: If API requests fail
+    """
+    # Deduplicate platform IDs while preserving order
+    unique_platform_ids = list(dict.fromkeys(platform_ids))
+    results = {}
+    
+    logger.info(f"Batch processing {len(unique_platform_ids)} unique platform IDs from {len(platform_ids)} requested")
+    
+    for platform_id in unique_platform_ids:
+        try:
+            ads = get_ads(platform_id, limit, country, trim)
+            results[platform_id] = ads
+            logger.info(f"Successfully retrieved {len(ads)} ads for platform ID '{platform_id}'")
+        except (CreditExhaustedException, RateLimitException):
+            # Re-raise credit/rate limit exceptions immediately
+            raise
+        except Exception as e:
+            logger.error(f"Failed to get ads for platform ID '{platform_id}': {str(e)}")
+            results[platform_id] = []
+    
+    return results
 
 
 def parse_fb_ads(resJson: Dict[str, Any], trim: bool = True) -> List[Dict[str, Any]]:

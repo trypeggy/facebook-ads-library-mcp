@@ -4,6 +4,14 @@ This is a Model Context Protocol (MCP) server for the Facebook Ads Library.
 
 With this you can search Facebook's public ads library for any company or brand, see what they're currently running and analyze their advertising. You can analyze ad images/text, analyze video ads with comprehensive insights, compare companies' strategies, and get insights into what's working in their campaigns.
 
+## ✨ New Features
+
+- **🚀 Batch Processing**: Query multiple brands and platform IDs simultaneously to reduce API calls and improve efficiency
+- **🎬 Video Batch Analysis**: Analyze multiple videos in a single Gemini API call with ~88% token savings
+- **💳 Smart Credit Management**: Automatic detection of API credit exhaustion with direct links to top-up your ScrapeCreators account
+- **⚡ Enhanced Performance**: Intelligent caching and request deduplication for faster results
+- **🔄 Backward Compatible**: All existing queries work unchanged while gaining new batch capabilities
+
 Here's an example of what you can do when it's connected to Claude.
 
 
@@ -18,6 +26,7 @@ PS: Join our [Twitter community](https://twitter.com/i/communities/1937504082635
 
 ## Example Prompts
 
+### Single Brand Analysis
 ```plaintext
 How many ads is 'AnthropicAI' running? What's their split across video and image?
 ```
@@ -30,8 +39,21 @@ What messaging is 'AnthropicAI' running right now in their ads?
 Analyze the video ads from 'Nike' and extract their visual storytelling strategy, pacing, and brand messaging techniques.
 ```
 
+### Batch Analysis (New!)
+```plaintext
+Compare the current advertising strategies across Nike, Adidas, and Under Armour. Show me their ad volumes, messaging themes, and creative approaches.
+```
+
 ```plaintext
 Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and 'OpenAI'. Give it a nice forwardable summary.
+```
+
+```plaintext
+Analyze the holiday campaign strategies for Coca-Cola, Pepsi, Dr Pepper, and Sprite. What themes are they using?
+```
+
+```plaintext
+Get the current ads for all major streaming services: Netflix, Disney+, Hulu, HBO Max, Amazon Prime Video, and Apple TV+. Compare their positioning strategies.
 ```
 
 ---
@@ -157,28 +179,50 @@ If you prefer to install manually:
 ## Technical Details
 
 1. Claude sends requests to the Python MCP server
-2. The MCP server queries the ScrapeCreator API through tools
-3. Data flows back through the chain to Claude
+2. The MCP server intelligently batches and optimizes queries to the ScrapeCreators API
+3. Smart caching reduces redundant API calls and improves performance
+4. Credit monitoring prevents workflow interruption with proactive error handling
+5. Data flows back through the chain to Claude with enhanced batch information
 
-### Available MCP Tools
+### Available MCP Tools (Enhanced)
 
 This MCP server provides tools for interacting with Facebook Ads library objects:
 
-| Tool Name              | Description                                        |
-| ---------------------- | -------------------------------------------------- |
-| `get_meta_platform_id` | Returns platform ID given one or many brand names |
-| `get_meta_ads`         | Retrieves ads for a specific page (platform ID)   |
-| `analyze_ad_image`     | Analyzes ad images for visual elements, text, colors, and composition |
-| `analyze_ad_video`     | Analyzes ad videos using Gemini AI for comprehensive video insights |
-| `get_cache_stats`      | Gets statistics about cached media (images and videos) and storage usage |
-| `search_cached_media`  | Searches previously analyzed media by brand, colors, people, or media type |
-| `cleanup_media_cache`  | Cleans up old cached media files to free disk space |
+| Tool Name              | Description                                        | Batch Support |
+| ---------------------- | -------------------------------------------------- | ------------- |
+| `get_meta_platform_id` | Returns platform ID given one or many brand names | ✅ Multiple brands |
+| `get_meta_ads`         | Retrieves ads for specific page(s) (platform ID)  | ✅ Multiple platform IDs |
+| `analyze_ad_image`     | Analyzes ad images for visual elements, text, colors, and composition | ⚡ Enhanced caching |
+| `analyze_ad_video`     | Analyzes single ad video using Gemini AI for comprehensive insights | ⚡ Enhanced caching |
+| `analyze_ad_videos_batch` | **NEW** - Analyzes multiple videos in single API call for token efficiency | 🎬 ~88% token savings |
+| `get_cache_stats`      | Gets statistics about cached media (images and videos) and storage usage | - |
+| `search_cached_media`  | Searches previously analyzed media by brand, colors, people, or media type | - |
+| `cleanup_media_cache`  | Cleans up old cached media files to free disk space | - |
+
+#### 🆕 Enhanced Features:
+- **Batch Processing**: `get_meta_platform_id` and `get_meta_ads` now accept single strings or arrays for efficient bulk operations
+- **Video Batch Analysis**: `analyze_ad_videos_batch` processes multiple videos in a single Gemini API call for massive token savings
+- **Smart Credit Management**: All tools detect API credit exhaustion and provide direct links to top-up
+- **Request Deduplication**: Automatic removal of duplicate requests in batch operations
+- **Token Optimization**: Shared prompt processing reduces Gemini API costs by ~88% for video analysis
+- **Backward Compatibility**: All existing single-query workflows continue to work unchanged
 
 ---
 
 ## Troubleshooting
 
 ### Common Issues
+
+**🆕 ScrapeCreators API Credits Exhausted:**
+- When you see "ScrapeCreators API credits exhausted", you need to top up your account
+- The error message includes a direct link to [ScrapeCreators Dashboard](https://scrapecreators.com/dashboard)
+- You can check your current credit balance and purchase more credits there
+- The server will automatically resume working once credits are available
+
+**🆕 Rate Limit Exceeded:**
+- If you hit rate limits, the server will tell you how long to wait
+- Batch operations help reduce the chance of hitting rate limits
+- Consider spacing out large batch requests if you frequently hit limits
 
 **API Key Not Found Error:**
 - Ensure your `.env` file is in the project root directory

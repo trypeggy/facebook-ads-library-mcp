@@ -436,6 +436,144 @@ class MediaCacheService:
                            color_contains: str = None) -> List[Dict[str, Any]]:
         """Search cached images by criteria (backward compatibility)."""
         return self.search_cached_media(brand_name, has_people, color_contains, 'image')
+    
+    def get_cached_media_batch(self, urls: List[str], media_type: str = None) -> Dict[str, Optional[Dict[str, Any]]]:
+        """
+        Retrieve cached media data for multiple URLs in a single database query.
+        
+        Args:
+            urls: List of media URLs to look up
+            media_type: Optional filter by media type ('image' or 'video')
+            
+        Returns:
+            Dictionary mapping URLs to their cached data (None if not found)
+        """
+        if not urls:
+            return {}
+            
+        # Generate URL hashes for batch lookup
+        url_hash_map = {self._generate_url_hash(url): url for url in urls}
+        
+        with sqlite3.connect(CACHE_DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            
+            # Build query with placeholders for all hashes
+            placeholders = ','.join(['?' for _ in url_hash_map.keys()])
+            query = f"SELECT * FROM media_cache WHERE url_hash IN ({placeholders})"
+            params = list(url_hash_map.keys())
+            
+            if media_type:
+                query += " AND media_type = ?"
+                params.append(media_type)
+            
+            cursor = conn.execute(query, params)
+            
+            # Initialize results with None for all URLs
+            results = {url: None for url in urls}
+            
+            for row in cursor.fetchall():
+                original_url = url_hash_map[row['url_hash']]
+                
+                # Check if file still exists
+                file_path = Path(row['file_path'])
+                if not file_path.exists():
+                    # File was deleted, remove from database
+                    conn.execute("DELETE FROM media_cache WHERE url_hash = ?", (row['url_hash'],))
+                    logger.warning(f"Cached file missing, removed from database: {file_path}")
+                    continue
+                
+                # Update last accessed time
+                conn.execute("""
+                    UPDATE media_cache 
+                    SET last_accessed = CURRENT_TIMESTAMP 
+                    WHERE url_hash = ?
+                """, (row['url_hash'],))
+                
+                # Convert row to dictionary
+                result = dict(row)
+                
+                # Parse JSON analysis results if available
+                if result['analysis_results']:
+                    try:
+                        result['analysis_results'] = json.loads(result['analysis_results'])
+                    except json.JSONDecodeError:
+                        result['analysis_results'] = None
+                
+                results[original_url] = result
+            
+            conn.commit()
+            
+        logger.info(f"Batch cache lookup: {sum(1 for v in results.values() if v is not None)}/{len(urls)} cache hits")
+        return results
+    
+    def cache_media_batch(self, media_data_list: List[Dict[str, Any]]) -> List[str]:
+        """
+        Cache multiple media files and metadata in batch operations.
+        
+        Args:
+            media_data_list: List of dictionaries containing:
+                - url: Media URL
+                - media_data: Raw media bytes
+                - content_type: MIME type
+                - media_type: 'image' or 'video'
+                - brand_name: Optional brand name
+                - ad_id: Optional ad ID
+                - analysis_results: Optional analysis results
+                - duration_seconds: Optional video duration
+                - has_audio: Optional audio presence flag
+                
+        Returns:
+            List of file paths where media was cached
+        """
+        if not media_data_list:
+            return []
+            
+        file_paths = []
+        db_entries = []
+        
+        # Process each media item and save files
+        for media_info in media_data_list:
+            url = media_info['url']
+            media_data = media_info['media_data']
+            content_type = media_info['content_type']
+            media_type = media_info.get('media_type', 'image')
+            
+            url_hash = self._generate_url_hash(url)
+            file_path = self._get_file_path(url_hash, content_type, media_type)
+            
+            # Save media file
+            file_path.write_bytes(media_data)
+            file_paths.append(str(file_path))
+            
+            # Prepare analysis results for storage
+            analysis_json = None
+            analysis_cached_at = None
+            analysis_results = media_info.get('analysis_results')
+            if analysis_results:
+                analysis_json = json.dumps(analysis_results)
+                analysis_cached_at = time.time()
+            
+            # Prepare database entry
+            db_entries.append((
+                url_hash, url, str(file_path), len(media_data), content_type, media_type,
+                media_info.get('brand_name'), media_info.get('ad_id'), 
+                analysis_json, analysis_cached_at,
+                media_info.get('duration_seconds'), media_info.get('has_audio')
+            ))
+        
+        # Batch insert into database
+        with sqlite3.connect(CACHE_DB_PATH) as conn:
+            conn.executemany("""
+                INSERT OR REPLACE INTO media_cache (
+                    url_hash, original_url, file_path, file_size, content_type, media_type,
+                    brand_name, ad_id, analysis_results, analysis_cached_at,
+                    duration_seconds, has_audio
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, db_entries)
+            conn.commit()
+        
+        logger.info(f"Batch cached {len(media_data_list)} media files")
+        return file_paths
 
 
 # Global instance (maintain backward compatibility)
