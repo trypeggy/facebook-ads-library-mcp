@@ -41,7 +41,7 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
 - Python 3.12+
 - Anthropic Claude Desktop app (or Cursor)
 - Pip (Python package manager), install with `python -m pip install`
-- An access token for [Scrape Creators](https://scrapecreators.com/)
+- An access token for [Scrape Creators](https://scrapecreators.com/?via=tntm)
 
 ### Steps
 
@@ -54,7 +54,7 @@ Do a deep comparison to the messaging between 'AnthropicAI', 'Perplexity AI' and
 
 2. **Obtain an API token from Scrape Creators**
 
-   Sign up [here](https://scrapecreators.com/)
+   Sign up [here](https://scrapecreators.com/?via=tntm)
 
 3. **Connect to the MCP server**
 
