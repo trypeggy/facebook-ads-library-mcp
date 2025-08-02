@@ -65,7 +65,7 @@ Get the current ads for all major streaming services: Netflix, Disney+, Hulu, HB
 - Python 3.12+
 - Anthropic Claude Desktop app (or Cursor)
 - Pip (Python package manager), install with `python -m pip install`
-- An access token for [Scrape Creators](https://scrapecreators.com/)
+- An access token for [Scrape Creators](https://scrapecreators.com/?via=tntm)
 - A Google Gemini API key for video analysis (optional, only needed for video ads)
 
 ### Quick Install (Recommended)
@@ -91,7 +91,7 @@ Get the current ads for all major streaming services: Netflix, Disney+, Hulu, HB
 2. **Configure your API keys**
 
    Edit the `.env` file that was created and add your API keys:
-   - Get your ScrapeCreators API key at [scrapecreators.com](https://scrapecreators.com/)
+   - Get your ScrapeCreators API key at [scrapecreators.com](https://scrapecreators.com/?via=tntm)
    - Get your Gemini API key at [Google AI Studio](https://aistudio.google.com/app/apikey) (optional, for video analysis)
 
 3. **Follow the displayed MCP configuration**
@@ -126,7 +126,7 @@ If you prefer to install manually:
    ```
 
    **To obtain API keys:**
-   - Sign up for Scrape Creators [here](https://scrapecreators.com/)
+   - Sign up for Scrape Creators [here](https://scrapecreators.com/?via=tntm)
    - Get a Google Gemini API key [here](https://aistudio.google.com/app/apikey) (optional, for video analysis)
 
 4. **Connect to the MCP server**
@@ -215,7 +215,7 @@ This MCP server provides tools for interacting with Facebook Ads library objects
 
 **🆕 ScrapeCreators API Credits Exhausted:**
 - When you see "ScrapeCreators API credits exhausted", you need to top up your account
-- The error message includes a direct link to [ScrapeCreators Dashboard](https://scrapecreators.com/dashboard)
+- The error message includes a direct link to [ScrapeCreators Dashboard](https://scrapecreators.com/dashboard?via=tntm))
 - You can check your current credit balance and purchase more credits there
 - The server will automatically resume working once credits are available
 
