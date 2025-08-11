@@ -5,7 +5,7 @@ startCommand:
   commandFunction:
     # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
     |-
-    (config) => ({ command: 'python', args: ['src/mcp_server.py', '--scrapecreators-api-key', config.scrapecreatorsApiKey], env: { } })
+    (config) => ({ command: 'python', args: ['mcp_server.py', '--scrapecreators-api-key', config.scrapecreatorsApiKey], env: { } })
   configSchema:
     # JSON Schema defining the configuration options for the MCP.
     type: object

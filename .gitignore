@@ -1,7 +1,49 @@
+# Virtual environment
 bin
 lib
 include
 pyvenv.cfg
+venv/
+
+# Python
 *__pycache__*
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Database files
 *.db
+*.sqlite
+*.sqlite3
+
+# Environment and config files
 .env
+mcp-inspector-config.json
+
+# Claude Code working directory (contains local tasks and hooks)
+.claude/
+CLAUDE.md
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Cache directories
+.cache/
