@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/trypeggy-facebook-ads-library-mcp-badge.png)](https://mseep.ai/app/trypeggy-facebook-ads-library-mcp)
+
 # Facebook Ads Library MCP Server
 
 This is a Model Context Protocol (MCP) server for the Facebook Ads Library.
